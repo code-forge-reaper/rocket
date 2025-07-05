@@ -12,6 +12,61 @@ struct Img {
 
 // Manual image pool tracking
 static std::vector<Img*> imgPool;
+static int l_LoadAndResize(lua_State* L){
+    const char* path = luaL_checkstring(L, 1);
+    int width = luaL_checkinteger(L, 2);
+    int height = luaL_checkinteger(L, 3);
+
+    Image img = LoadImage(path);
+    if (!img.data) {
+        lua_pushnil(L);
+        lua_pushstring(L, "Failed to load image");
+        return 2;
+    }
+    ImageResize(&img, width, height);
+
+    Texture2D tex = LoadTextureFromImage(img);
+    if (!tex.id) {
+        UnloadImage(img);
+        lua_pushnil(L);
+        lua_pushstring(L, "Failed to create texture");
+        return 2;
+    }
+
+    Img* wrapper = new Img{ img, tex };
+    imgPool.push_back(wrapper); // Track for cleanup
+
+    pushPtr(L, wrapper); // Pushed as userdata, no __gc
+    return 1;
+}
+
+static int l_LoadAndScale(lua_State* L){
+    const char* path = luaL_checkstring(L, 1);
+    float scale = luaL_checknumber(L, 2);
+
+    Image img = LoadImage(path);
+    if (!img.data) {
+        lua_pushnil(L);
+        lua_pushstring(L, "Failed to load image");
+        return 2;
+    }
+
+    ImageResize(&img, (int)(img.width * scale), (int)(img.height * scale));
+
+    Texture2D tex = LoadTextureFromImage(img);
+    if (!tex.id) {
+        UnloadImage(img);
+        lua_pushnil(L);
+        lua_pushstring(L, "Failed to create texture");
+        return 2;
+    }
+
+    Img* wrapper = new Img{ img, tex };
+    imgPool.push_back(wrapper); // Track for cleanup
+
+    pushPtr(L, wrapper); // Pushed as userdata, no __gc
+    return 1;
+}
 
 static int l_LoadImage(lua_State* L) {
     const char* path = luaL_checkstring(L, 1);
@@ -108,6 +163,8 @@ static void registerImageClass(lua_State* L) {
 static luaL_Reg imgFuncs[] = {
     { "load", l_LoadImage },
     { "unloadAll", l_UnloadAll },
+    { "loadAndResize", l_LoadAndResize },
+    { "loadAndScale", l_LoadAndScale },
     { NULL, NULL }
 };
 

@@ -133,10 +133,10 @@ end
 -- Define targets
 Target("rocket executable", {"fs.so", "raylib.so","curses.so"}, function()
     if needsRebuild("main.cpp", "bin/rocket") then
-        print("Compiling rocketExec...")
+        print("Compiling rocket...")
         runCmd("clang++ main.cpp -o bin/rocket -llua -llua++ -lraylib")
     end
-end, "rocketExec, or rocket, is a C++ executable that wraps functionality on top of Lua")
+end, "rocket, or rocket, is a C++ executable that wraps functionality on top of Lua")
 
 -- raylib.cpp includes libs/raygui/raygui.cpp
 -- so you can use it with default Lua
@@ -164,7 +164,7 @@ Target("install", {"all"}, function()
         runCmd("mkdir -p ~/bin")
         runCmd("cp bin/rocket ~/bin/rocket")
     end
-end, "Installs rocketExec as rocket")
+end, "Installs rocket")
 
 Target("curses.so", {},function()
     if directoryNeedsRebuild("libs/ncurses","bin/curses.so") then
@@ -195,6 +195,6 @@ local selectedTarget = buildStr(arg)
 
 build(selectedTarget)
 
--- this is just so rocketExec(rocket) doesn't error out due to no main function being found
+-- this is just so rocket doesn't error out due to no main function being found
 function main()
 end

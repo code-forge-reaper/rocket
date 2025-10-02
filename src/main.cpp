@@ -7,49 +7,12 @@
 #include <stdio.h>
 #include <unistd.h>
 
-static int loadLib(lua_State *L) {
-  if (lua_gettop(L) != 1) {
-    luaL_error(L, "Expected 1 argument, got %d", lua_gettop(L));
-    return 1;
-  }
-  const char *lib = luaL_checkstring(L, 1);
-  // check if it exists
-  if (access(lib, F_OK) != -1) {
-    void *handle = dlopen(lib, RTLD_LAZY);
-    if (!handle) {
-      std::cerr << "Error loading shared object file: " << dlerror()
-                << std::endl;
-      exit(1); // exit on failure
-    }
-    lua_func library_open_function = (lua_func)dlsym(handle, "rocket_init");
-
-    if (!library_open_function) {
-      std::cerr << "Error finding library open function: " << dlerror()
-                << std::endl;
-      std::cerr << "library:" << lib << std::endl;
-
-      dlclose(handle); // Close the handle
-      exit(1);         // exit on failure
-    }
-
-    int r = library_open_function(L);
-    return r;
-  }
-  luaL_error(L, "Could not load library: %s", lib);
-  return 1;
-}
-
 void rocketFunctions(lua_State *L) {
   luaL_openlibs(L);
-
-  lua_newtable(L);
-  lua_pushcfunction(L, loadLib);
-  lua_setfield(L, -2, "load");
-  lua_setglobal(L, "ffi");
-
   luaopen_raylib(L);
   initFuncs(L);
 }
+
 // Function to push all elements from argv onto a Lua table
 void pushArgvToLuaTable(lua_State *L, int argc, const char *argv[]) {
   lua_newtable(L); // Create a new table on the Lua stack
@@ -76,8 +39,7 @@ int main(int argc, char const *argv[]) {
   rocketFunctions(L);
   pushArgvToLuaTable(L, argc, argv);
   lua_setglobal(L, "arg"); // Set the table as a global variable named "args"
-  lua_pushboolean(L, true);
-  lua_setglobal(L, "isRocket");
+
   int res = luaL_dofile(L, argv[1]); // Load Lua script
   if (res != LUA_OK) {
     printf("Error loading Lua script: %s\n", lua_tostring(L, -1));
